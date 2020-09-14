@@ -1,0 +1,42 @@
+extends layout
+
+block content
+  h1= title
+  p#uid
+  ul#messages
+  form(action="")
+    input(id="m", name="msg", autocomplete="off")
+    button Send
+
+
+  script(src="/socket.io/socket.io.js")
+  script.
+      var socket = io();
+      var form = document.querySelector("form");
+      var msgblock = document.querySelector("#messages");
+      setTimeout(()=>{
+        document.querySelector("#uid").innerText = `Welcome user ${socket.id}`;
+      }, 500)
+      
+      form.onsubmit = e=>{
+        e.preventDefault();
+        socket.emit("msg", form.msg.value);
+        form.msg.value="";
+        return false;
+      };
+
+      socket.on("new msg", msg=>{
+        createmsg(`${msg.id}: ${msg.text}`);
+      })
+      socket.on("connected", id=>{
+        createmsg(id + " joined");
+      })
+      socket.on("disconnected", id=>{
+        createmsg(id + " left");
+      })
+
+      function createmsg(text){
+        var msgel = document.createElement("LI");
+        msgel.innerText=text;
+        msgblock.appendChild(msgel);
+      }
