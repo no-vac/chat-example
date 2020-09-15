@@ -7,6 +7,7 @@ var logger = require("morgan");
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
+var videoRouter = require("./routes/video");
 
 var app = express();
 var server = require("http").createServer(app);
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+app.use("/video", videoRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -48,18 +50,39 @@ app.use(function (err, req, res, next) {
   });
 });
 
-io.on("connection", (socket) => {
-  console.log(`user ${socket.id} connected`);
-  socket.broadcast.emit("connected", socket.id);
+//SocketIO
+let activeSockets = [];
 
-  socket.on("msg", (msg) => {
-    message = { text: msg, id: socket.id };
-    io.emit("new msg", message);
+io.on("connection", (socket) => {
+  const existingSocket = activeSockets.find((existingSocket) => existingSocket === socket.id);
+
+  if (!existingSocket) activeSockets.push(socket.id);
+
+  socket.emit("update-user-list", {
+    users: activeSockets.filter((existingSocket) => existingSocket !== socket.id),
   });
 
+  socket.broadcast.emit("update-user-list", { users: [socket.id] });
+
+  console.log(`user ${socket.id} connected`);
+
   socket.on("disconnect", () => {
-    console.log(`user ${socket.id} disconnected`);
-    io.emit("disconnected", socket.id);
+    activeSockets = activeSockets.filter((existingSocket) => existingSocket !== socket.id);
+    socket.broadcast.emit("remove-user", { socketId: socket.id });
+  });
+
+  socket.on("call-user", (data) => {
+    socket.to(data.to).emit("call-made", {
+      offer: data.offer,
+      socket: socket.id,
+    });
+  });
+
+  socket.on("make-answer", (data) => {
+    socket.to(data.to).emit("answer-made", {
+      socket: socket.id,
+      answer: data.answer,
+    });
   });
 });
 

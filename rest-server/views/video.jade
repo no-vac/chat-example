@@ -1,0 +1,18 @@
+extends layout
+
+block content
+    h1 Video Chat
+    .container
+        .content-container
+            .active-users-panel#active-user-container
+                h3.panel-title Active Users:
+            .video-chat-container
+                h2.talk-info#talking-with-info Select active user
+                .video-container
+                    video(autoplay, class="remote-video", id="remote-video")
+                    video(autoplay, class="local-video", id="local-video")
+        
+
+
+    script(src="/socket.io/socket.io.js")
+    script(src="/javascripts/main.js")
